@@ -1,0 +1,1359 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Código de Ética XBOX</title>
+    <!-- Metadatos PWA para instalar como App nativa -->
+    <meta name="theme-color" content="#07140a">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Ética XBOX">
+    <meta name="mobile-web-app-capable" content="yes">
+    <link id="pwaManifestLink" rel="manifest">
+    <link id="appleTouchIconLink" rel="apple-touch-icon">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #050a06;
+            color: #ffffff;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            width: 100vw;
+            height: 100vh;
+            height: 100dvh;
+            touch-action: none;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        .font-pixel {
+            font-family: 'Press Start 2P', monospace;
+        }
+        .xbox-glow {
+            box-shadow: 0 0 20px rgba(16, 124, 16, 0.45), inset 0 0 12px rgba(155, 240, 11, 0.15);
+        }
+        .xbox-text-glow {
+            text-shadow: 0 0 10px rgba(155, 240, 11, 0.85);
+        }
+        canvas {
+            display: block;
+            image-rendering: pixelated;
+            width: 100%;
+            height: 100%;
+        }
+        @keyframes pulseGreen {
+            0%, 100% { transform: scale(1); box-shadow: 0 0 15px rgba(155, 240, 11, 0.5); }
+            50% { transform: scale(1.03); box-shadow: 0 0 25px rgba(155, 240, 11, 0.9); }
+        }
+        .btn-arcade {
+            animation: pulseGreen 2s infinite;
+            transition: transform 0.1s ease;
+        }
+        /* Botones táctiles ultra traslúcidos estilo Ferxxo */
+        .glass-ctrl {
+            background: rgba(255, 255, 255, 0.08);
+            border: 2px solid rgba(255, 255, 255, 0.25);
+            backdrop-filter: blur(2px);
+            -webkit-backdrop-filter: blur(2px);
+            transition: transform 0.07s ease, background-color 0.07s ease, border-color 0.07s ease;
+            touch-action: none;
+        }
+        .glass-ctrl:active, .glass-ctrl.pressed {
+            transform: scale(0.91);
+            background: rgba(155, 240, 11, 0.25);
+            border-color: rgba(155, 240, 11, 0.75);
+        }
+        .glass-sword {
+            background: rgba(56, 189, 248, 0.12);
+            border: 2px solid rgba(56, 189, 248, 0.4);
+        }
+        .glass-sword:active, .glass-sword.pressed {
+            transform: scale(0.91);
+            background: rgba(56, 189, 248, 0.32);
+            border-color: rgba(125, 211, 252, 0.9);
+        }
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #111813;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #107C10;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body class="w-screen h-screen overflow-hidden bg-[#040905] p-1 sm:p-2">
+
+    <!-- Marco Principal Horizontal a Pantalla Completa -->
+    <div id="canvasContainer" class="relative w-full h-full bg-[#07140a] border-2 sm:border-[3px] border-[#19e653] rounded-2xl sm:rounded-3xl overflow-hidden xbox-glow">
+        <canvas id="gameCanvas"></canvas>
+
+        <!-- Barra HUD Superior Flotante (Estilo Ferxxo) -->
+        <header class="absolute top-2 left-2 right-2 sm:top-3 sm:left-4 sm:right-4 z-20 flex items-center justify-between gap-2 bg-[#08170c]/75 backdrop-blur-md border border-[#19e653]/60 rounded-full px-3 py-1.5 sm:px-5 sm:py-2 shadow-lg">
+            <!-- Izquierda: Corazones + Orbes + Puntos -->
+            <div class="flex items-center gap-2.5 sm:gap-4 shrink-0">
+                <span id="hudHearts" class="text-xs sm:text-base tracking-tighter">❤️❤️❤️</span>
+
+                <div class="flex items-center gap-1 text-[10px] sm:text-xs font-pixel text-gray-200">
+                    <span class="inline-block w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-full bg-[#107C10] border border-[#9BF00B] text-[8px] leading-3 text-center text-white">X</span>
+                    <span id="hudCoins">0/0</span>
+                </div>
+
+                <div class="hidden md:flex items-center gap-1.5 text-[10px] sm:text-xs font-pixel text-gray-200">
+                    <span class="text-gray-400">PUNTOS</span>
+                    <span id="hudScore" class="text-white">0000</span>
+                </div>
+            </div>
+
+            <!-- Centro: Nivel y Concepto + Mini Barra de Meta -->
+            <div class="flex-1 flex flex-col items-center justify-center min-w-0 px-1">
+                <div class="flex items-center gap-1.5 text-[9px] sm:text-xs font-pixel text-[#9BF00B] truncate max-w-full">
+                    <span id="hudLevel">NIVEL 1/11</span>
+                    <span class="text-gray-400">•</span>
+                    <span id="currentTargetLabel" class="text-white truncate">RESPETO</span>
+                </div>
+                <div class="w-full max-w-[180px] sm:max-w-[260px] h-1.5 bg-black/70 rounded-full overflow-hidden mt-1 border border-[#19e653]/30">
+                    <div id="levelProgressBar" class="h-full bg-gradient-to-r from-[#107C10] to-[#9BF00B] w-0 transition-all duration-100"></div>
+                </div>
+            </div>
+
+            <!-- Derecha: Botón Códice + Sonido + Reiniciar -->
+            <div class="flex items-center gap-1.5 sm:gap-2 shrink-0">
+                <button id="btnOpenCodex" type="button" class="bg-[#107C10]/85 hover:bg-[#169b16] text-white text-[10px] sm:text-xs font-bold px-2.5 py-1.5 sm:px-3 sm:py-1.5 rounded-full border border-[#9BF00B] transition flex items-center gap-1 cursor-pointer" title="Ver Conceptos Desbloqueados">
+                    <span>📜</span>
+                    <span class="hidden sm:inline">Códice</span>
+                    <span id="codexBadge" class="bg-[#9BF00B] text-black font-pixel text-[9px] px-1.5 py-0.2 rounded-full">0</span>
+                </button>
+
+                <button id="btnMute" type="button" class="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-white/10 hover:bg-white/20 border border-white/30 flex items-center justify-center text-xs sm:text-sm text-white cursor-pointer" title="Silenciar / Activar Audio">
+                    🔊
+                </button>
+
+                <button id="btnQuickRestart" type="button" class="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-white/10 hover:bg-white/20 border border-white/30 flex items-center justify-center text-xs sm:text-sm text-white cursor-pointer" title="Reiniciar Nivel Actual">
+                    ↻
+                </button>
+            </div>
+        </header>
+
+        <!-- Controles Flotantes Ultra Traslúcidos (Superpuestos en la parte inferior) -->
+        <!-- Izquierda: Flechas Izquierda y Derecha -->
+        <div class="absolute bottom-3 left-3 sm:bottom-5 sm:left-6 z-20 flex items-center gap-3 sm:gap-4 pointer-events-auto">
+            <button id="btnLeft" type="button" class="glass-ctrl w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-full flex items-center justify-center text-white/80 text-xl sm:text-2xl cursor-pointer" aria-label="Izquierda">
+                ◀
+            </button>
+            <button id="btnRight" type="button" class="glass-ctrl w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-full flex items-center justify-center text-white/80 text-xl sm:text-2xl cursor-pointer" aria-label="Derecha">
+                ▶
+            </button>
+        </div>
+
+        <!-- Derecha: Botón Espada ARRIBA y Botón Salto ABAJO -->
+        <div class="absolute bottom-3 right-3 sm:bottom-5 sm:right-6 z-20 flex flex-col items-center gap-2.5 sm:gap-3.5 pointer-events-auto">
+            <!-- Botón Espada de Energía (Arriba) -->
+            <button id="btnSword" type="button" class="glass-ctrl glass-sword w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-full flex flex-col items-center justify-center text-cyan-300/90 cursor-pointer" aria-label="Atacar con Espada">
+                <span class="text-lg sm:text-2xl leading-none">⚔️</span>
+                <span class="font-pixel text-[7px] sm:text-[8px] mt-1 opacity-80">ESPADA</span>
+            </button>
+
+            <!-- Botón Salto (Abajo) -->
+            <button id="btnJump" type="button" class="glass-ctrl w-16 h-16 sm:w-18 sm:h-18 md:w-20 md:h-20 rounded-full flex items-center justify-center text-[#9BF00B]/90 text-xl sm:text-2xl cursor-pointer" style="background: rgba(155, 240, 11, 0.12); border-color: rgba(155, 240, 11, 0.35);" aria-label="Saltar">
+                ▲
+            </button>
+        </div>
+
+        <!-- Pantalla de Inicio (Adaptada a Horizontal) -->
+        <div id="startOverlay" class="absolute inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6 z-30">
+            <div class="bg-[#0d1c10]/95 border-2 border-[#19e653] rounded-2xl p-4 sm:p-6 max-w-2xl w-full flex flex-col sm:flex-row items-center gap-4 sm:gap-6 xbox-glow text-center sm:text-left">
+                <div class="shrink-0 flex flex-col items-center">
+                    <div class="w-20 h-20 sm:w-24 sm:h-24 flex items-center justify-center bg-black/50 rounded-2xl border border-[#19e653]/40 p-1" id="previewCharacterBox"></div>
+                    <span class="font-pixel text-[8px] text-[#9BF00B] mt-2">SPARTAN XBOX</span>
+                </div>
+                <div class="flex-1">
+                    <h1 class="font-pixel text-xs sm:text-lg text-[#9BF00B] mb-2 xbox-text-glow">CÓDIGO DE ÉTICA XBOX</h1>
+                    <p class="text-xs sm:text-sm text-gray-200 mb-3 leading-relaxed">
+                        Avanza en horizontal, salta plataformas, derrota los antivalores con tu <strong class="text-cyan-400">Espada de Energía</strong> y cruza el portal de meta en cada nivel para desbloquear los <strong>11 conceptos</strong>.
+                    </p>
+                    <div class="flex flex-wrap justify-center sm:justify-start gap-2 text-[10px] text-gray-300 mb-4">
+                        <span class="bg-black/60 border border-white/15 px-2.5 py-1 rounded-lg">◀▶ Mover</span>
+                        <span class="bg-black/60 border border-white/15 px-2.5 py-1 rounded-lg">▲ Saltar</span>
+                        <span class="bg-black/60 border border-cyan-500/30 text-cyan-300 px-2.5 py-1 rounded-lg">⚔️ Espada (Tecla X)</span>
+                    </div>
+                    <div class="flex flex-wrap items-center justify-center sm:justify-start gap-3">
+                        <button id="btnStartGame" type="button" class="btn-arcade bg-[#107C10] hover:bg-[#159c15] text-white font-pixel text-xs px-6 py-3.5 rounded-xl border-2 border-[#9BF00B] cursor-pointer w-full sm:w-auto">
+                            ▶ JUGAR NIVEL 1
+                        </button>
+                        <button id="btnInstallApp" type="button" class="hidden bg-cyan-950/80 hover:bg-cyan-900 text-cyan-300 font-pixel text-[10px] px-4 py-3.5 rounded-xl border border-cyan-400 cursor-pointer w-full sm:w-auto">
+                            📲 INSTALAR APP
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal de Concepto Desbloqueado al llegar a la meta (Compacto Horizontal) -->
+        <div id="unlockOverlay" class="hidden absolute inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 z-30">
+            <div class="bg-gradient-to-r from-[#112415] to-[#0a140c] border-2 border-[#9BF00B] rounded-2xl p-4 sm:p-6 max-w-2xl w-full xbox-glow flex flex-col sm:flex-row items-center gap-4 text-center sm:text-left">
+                <div class="shrink-0 flex flex-col items-center justify-center bg-black/50 border border-[#9BF00B]/40 rounded-2xl w-20 h-20 sm:w-24 sm:h-24">
+                    <span class="text-3xl sm:text-4xl" id="unlockIcon">🤝</span>
+                    <span class="font-pixel text-[8px] text-[#9BF00B] mt-1">DESBLOQUEADO</span>
+                </div>
+                <div class="flex-1">
+                    <span id="unlockCategory" class="text-[10px] uppercase tracking-widest text-emerald-400 font-bold">VALORES XBOX</span>
+                    <h2 id="unlockTitle" class="font-pixel text-xs sm:text-base text-white my-1 xbox-text-glow">1. RESPETO</h2>
+                    <p id="unlockDesc" class="text-xs sm:text-sm text-gray-200 bg-black/60 border border-[#107C10]/60 rounded-xl p-3 mb-3 leading-relaxed">
+                        Tratar a todos los jugadores con educación, sin importar su edad, género, nacionalidad o habilidades.
+                    </p>
+                    <button id="btnNextLevel" type="button" class="btn-arcade bg-[#107C10] hover:bg-[#159c15] text-white font-pixel text-[11px] sm:text-xs px-5 py-3 rounded-xl border-2 border-[#9BF00B] cursor-pointer w-full sm:w-auto">
+                        SIGUIENTE NIVEL ➔
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal de Game Over -->
+        <div id="gameOverOverlay" class="hidden absolute inset-0 bg-black/80 backdrop-blur-sm flex flex-col items-center justify-center p-4 text-center z-30">
+            <h2 class="font-pixel text-sm sm:text-xl text-red-500 mb-2">¡ESCUDO AGOTADO!</h2>
+            <p id="gameOverReason" class="text-xs sm:text-sm text-gray-300 max-w-md mb-4">
+                Caíste o chocaste contra una conducta tóxica. ¡Usa tu espada y salta con precisión!
+            </p>
+            <button id="btnRetryLevel" type="button" class="btn-arcade bg-[#107C10] hover:bg-[#159c15] text-white font-pixel text-xs px-6 py-3 rounded-xl border-2 border-[#9BF00B] cursor-pointer">
+                ↻ REINTENTAR NIVEL
+            </button>
+        </div>
+
+        <!-- Modal de Victoria Final (11/11) -->
+        <div id="victoryOverlay" class="hidden absolute inset-0 bg-black/85 backdrop-blur-md flex flex-col items-center justify-center p-4 text-center z-30">
+            <div class="text-3xl sm:text-4xl mb-2">🏆🎮</div>
+            <h2 class="font-pixel text-xs sm:text-lg text-[#9BF00B] mb-2 xbox-text-glow">¡CÓDIGO DE ÉTICA COMPLETADO!</h2>
+            <p class="text-xs sm:text-sm text-gray-200 max-w-lg mb-4">
+                Has completado los <strong>11 niveles</strong> y desbloqueado todos los valores y pilares del <strong>Código de Ética XBOX</strong>.
+            </p>
+            <div class="flex flex-wrap gap-3 justify-center">
+                <button id="btnViewAllCodex" type="button" class="bg-[#9BF00B] text-black font-pixel text-[11px] sm:text-xs px-5 py-3 rounded-xl font-bold cursor-pointer">
+                    📜 VER CÓDICE COMPLETO
+                </button>
+                <button id="btnRestartAll" type="button" class="bg-[#107C10] text-white font-pixel text-[11px] sm:text-xs px-5 py-3 rounded-xl border border-[#9BF00B] cursor-pointer">
+                    ↻ REINICIAR JUEGO
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal del Códice (Conceptos Desbloqueados) -->
+    <div id="codexModal" class="hidden fixed inset-0 bg-black/85 backdrop-blur-md z-50 flex items-center justify-center p-3 sm:p-6">
+        <div class="bg-[#101812] border-2 border-[#9BF00B] rounded-2xl max-w-3xl w-full max-h-[85vh] flex flex-col xbox-glow">
+            <div class="p-4 border-b border-[#107C10] flex items-center justify-between">
+                <div>
+                    <h2 class="font-pixel text-xs sm:text-base text-[#9BF00B]">CÓDICE: CÓDIGO DE ÉTICA XBOX</h2>
+                    <p class="text-xs text-gray-400 mt-1">11 Conceptos oficiales de tus hojas de ética</p>
+                </div>
+                <button id="btnCloseCodex" type="button" class="bg-red-900/70 hover:bg-red-700 text-white px-3 py-1.5 rounded-xl text-xs font-bold border border-red-500 cursor-pointer">
+                    ✕ CERRAR
+                </button>
+            </div>
+            <div id="codexList" class="p-4 overflow-y-auto grid grid-cols-1 md:grid-cols-2 gap-3"></div>
+        </div>
+    </div>
+
+    <script>
+        /**
+         * LOS 11 CONCEPTOS EXTRAÍDOS DE LAS DOS HOJAS DEL CÓDIGO DE ÉTICA XBOX
+         */
+        const ETHICS_CONCEPTS = [
+            {
+                id: 1,
+                category: "VALORES XBOX",
+                title: "Respeto",
+                icon: "🤝",
+                enemyName: "Toxicidad",
+                description: "Tratar a todos los jugadores con educación, sin importar su edad, género, nacionalidad o habilidades."
+            },
+            {
+                id: 2,
+                category: "VALORES XBOX",
+                title: "Inclusión",
+                icon: "🌍",
+                enemyName: "Discriminación",
+                description: "Permitir que todas las personas disfruten de los videojuegos sin discriminación."
+            },
+            {
+                id: 3,
+                category: "VALORES XBOX",
+                title: "Honestidad",
+                icon: "⚖️",
+                enemyName: "Trampas / Hacks",
+                description: "No utilizar trampas, engaños o métodos ilegales para obtener ventajas en los juegos."
+            },
+            {
+                id: 4,
+                category: "VALORES XBOX",
+                title: "Responsabilidad",
+                icon: "🛡️",
+                enemyName: "Irresponsabilidad",
+                description: "Asumir las consecuencias de nuestras acciones y respetar las reglas."
+            },
+            {
+                id: 5,
+                category: "VALORES XBOX",
+                title: "Seguridad",
+                icon: "🔒",
+                enemyName: "Acoso",
+                description: "Evitar amenazas, acoso, intimidación y cualquier comportamiento que pueda perjudicar a los demás."
+            },
+            {
+                id: 6,
+                category: "VALORES XBOX",
+                title: "Trabajo en Equipo",
+                icon: "🎮",
+                enemyName: "Sabotaje",
+                description: "Apoyar a otros jugadores, colaborar y fomentar una convivencia positiva."
+            },
+            {
+                id: 7,
+                category: "VALORES XBOX",
+                title: "Creatividad",
+                icon: "🎨",
+                enemyName: "Spam Tóxico",
+                description: "Compartir contenido original, divertido y apropiado para toda la comunidad."
+            },
+            {
+                id: 8,
+                category: "PILARES ÉTICOS XBOX",
+                title: "Conducta Laboral",
+                icon: "💼",
+                enemyName: "Falta de Respeto",
+                description: "Mantener un trato respetuoso y profesional. Fomentar la igualdad de oportunidades, evitar la discriminación y cumplir con las responsabilidades y horarios de trabajo."
+            },
+            {
+                id: 9,
+                category: "PILARES ÉTICOS XBOX",
+                title: "Conflictos de Interés",
+                icon: "🚫",
+                enemyName: "Soborno",
+                description: "Evitar utilizar el puesto de trabajo para obtener beneficios personales. No aceptar regalos o dinero que puedan influir en decisiones e informar cuando exista algún interés personal."
+            },
+            {
+                id: 10,
+                category: "PILARES ÉTICOS XBOX",
+                title: "Relaciones del Entorno",
+                icon: "🌱",
+                enemyName: "Desperdicio",
+                description: "Mantener relaciones honestas con clientes, proveedores, etc. Ofrecer productos y servicios de calidad, y cuidar el medio ambiente mediante ahorro de energía."
+            },
+            {
+                id: 11,
+                category: "PILARES ÉTICOS XBOX",
+                title: "Canales de Denuncia",
+                icon: "📢",
+                enemyName: "Corrupción",
+                description: "Reportar cualquier situación de acoso, discriminación o corrupción (correo electrónico, Recursos Humanos y línea ética), garantizando la confidencialidad de los reportes."
+            }
+        ];
+
+        // ==========================================
+        // SONIDOS RETRO (WEB AUDIO API)
+        // ==========================================
+        const AudioEngine = {
+            ctx: null,
+            muted: false,
+            init() {
+                if (!this.ctx) {
+                    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                    if (AudioCtx) {
+                        this.ctx = new AudioCtx();
+                    }
+                }
+                if (this.ctx && this.ctx.state === 'suspended') {
+                    this.ctx.resume();
+                }
+            },
+            playTone(freq, type, duration, vol = 0.12, slideFreq = null) {
+                if (this.muted) return;
+                try {
+                    this.init();
+                    if (!this.ctx) return;
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = type;
+                    osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+                    if (slideFreq) {
+                        osc.frequency.exponentialRampToValueAtTime(slideFreq, this.ctx.currentTime + duration);
+                    }
+                    gain.gain.setValueAtTime(vol, this.ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + duration);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start();
+                    osc.stop(this.ctx.currentTime + duration);
+                } catch (e) {}
+            },
+            jump() {
+                this.playTone(260, 'square', 0.16, 0.10, 560);
+            },
+            sword() {
+                this.playTone(900, 'sawtooth', 0.18, 0.14, 180);
+            },
+            coin() {
+                this.playTone(660, 'sine', 0.08, 0.12, 990);
+            },
+            hitEnemy() {
+                this.playTone(180, 'square', 0.18, 0.15, 60);
+            },
+            hurt() {
+                this.playTone(220, 'sawtooth', 0.25, 0.16, 70);
+            },
+            levelUp() {
+                const notes = [523.25, 659.25, 783.99, 1046.50];
+                notes.forEach((n, idx) => {
+                    setTimeout(() => this.playTone(n, 'square', 0.2, 0.13), idx * 100);
+                });
+            },
+            gameOver() {
+                const notes = [330, 293.66, 261.63, 196];
+                notes.forEach((n, idx) => {
+                    setTimeout(() => this.playTone(n, 'sawtooth', 0.24, 0.13), idx * 140);
+                });
+            }
+        };
+
+        // ==========================================
+        // SPRITE PIXEL ART DEL SPARTAN (IMAGEN 3)
+        // ==========================================
+        const SPARTAN_PALETTE = {
+            'K': '#141916',
+            'G': '#4E8E45',
+            'L': '#6AB65C',
+            'D': '#34632E',
+            'V': '#22283A',
+            'S': '#3D4766',
+            'O': '#F2851D',
+            'Y': '#FBB03B',
+            'B': '#1E90FF',
+            'C': '#5CE1E6',
+            'W': '#E0FFFF'
+        };
+
+        const SPARTAN_SPRITE = [
+            ".......KKKKKK.............",
+            "......KLLLLLLK............",
+            ".....KLGGGGGGKKKK.........",
+            ".....KGGGGGGVVVVVK........",
+            ".....KGDGGGGKOOOOOK.......",
+            "......KKGGGGKOYOYOK..CC...",
+            ".......KGGGGKOOOOOK.CWWC..",
+            ".......KDDDDKKKKKK.CWWC...",
+            "......KVGGGGVVK...CWWC..CC",
+            "....KKVGGGGGGVVK.CWWC..CWW",
+            "...KLGKVGGGGVGLK.CWC..CWWC",
+            "..KLGGKVVVVVVGGKCCWC.CWWC.",
+            "..KGGGKVVVVVVGGKWWKKCWWC..",
+            "...KKK.KGGGGKVVKKVKKWWC...",
+            ".......KGGGGKVVVVKKCWC....",
+            "......KVGGGGVVVVKKCWWC....",
+            ".....KVGGKKKVVGGK.CWC.....",
+            "....KVGGK...KVVGK..CC.....",
+            "...KVGGK.....KGGK.........",
+            "..KLGGK......KLGGK........",
+            ".KLLLLK.....KLLLLLK.......",
+            ".KKKKKK.....KKKKKKK......."
+        ];
+
+        function drawSpartanSprite(ctx, x, y, width, height, facingRight = true, isAttacking = false, runFrame = 0) {
+            const rows = SPARTAN_SPRITE.length;
+            const cols = SPARTAN_SPRITE[0].length;
+            const pxW = width / cols;
+            const pxH = height / rows;
+
+            ctx.save();
+            ctx.translate(x + width / 2, y + height / 2);
+            if (!facingRight) {
+                ctx.scale(-1, 1);
+            }
+            ctx.translate(-width / 2, -height / 2);
+
+            for (let r = 0; r < rows; r++) {
+                let rowOffsetX = 0;
+                if (r >= 16) {
+                    rowOffsetX = (runFrame === 1 ? 1.5 : (runFrame === 2 ? -1.5 : 0));
+                }
+                for (let c = 0; c < cols; c++) {
+                    const ch = SPARTAN_SPRITE[r][c];
+                    if (ch === '.') continue;
+
+                    let extraX = 0;
+                    let extraY = 0;
+                    if ((ch === 'C' || ch === 'W' || ch === 'B') && isAttacking) {
+                        extraX = pxW * 2.5;
+                        extraY = -pxH * 0.5;
+                    }
+
+                    ctx.fillStyle = SPARTAN_PALETTE[ch] || '#4E8E45';
+                    ctx.fillRect(
+                        Math.floor(c * pxW + rowOffsetX + extraX),
+                        Math.floor(r * pxH + extraY),
+                        Math.ceil(pxW),
+                        Math.ceil(pxH)
+                    );
+                }
+            }
+
+            if (isAttacking) {
+                ctx.strokeStyle = 'rgba(92, 225, 230, 0.85)';
+                ctx.lineWidth = 4;
+                ctx.beginPath();
+                ctx.arc(width * 0.82, height * 0.45, width * 0.55, -Math.PI * 0.45, Math.PI * 0.35);
+                ctx.stroke();
+
+                ctx.strokeStyle = 'rgba(224, 255, 255, 0.95)';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.arc(width * 0.85, height * 0.45, width * 0.48, -Math.PI * 0.4, Math.PI * 0.3);
+                ctx.stroke();
+            }
+
+            ctx.restore();
+        }
+
+        function renderStartPreview() {
+            const box = document.getElementById('previewCharacterBox');
+            if (!box) return;
+            const prevCanvas = document.createElement('canvas');
+            prevCanvas.width = 96;
+            prevCanvas.height = 96;
+            const pCtx = prevCanvas.getContext('2d');
+            pCtx.imageSmoothingEnabled = false;
+            drawSpartanSprite(pCtx, 8, 10, 80, 76, true, false, 0);
+            box.innerHTML = '';
+            box.appendChild(prevCanvas);
+        }
+
+        // ==========================================
+        // CONFIGURACIÓN PWA (ÍCONO DINÁMICO + MANIFEST)
+        // ==========================================
+        let deferredInstallPrompt = null;
+
+        function initPWAFeatures() {
+            try {
+                // 1. Generar ícono 512x512 PNG del Spartan XBOX para pantalla de inicio
+                const iconCanvas = document.createElement('canvas');
+                iconCanvas.width = 512;
+                iconCanvas.height = 512;
+                const iCtx = iconCanvas.getContext('2d');
+                iCtx.imageSmoothingEnabled = false;
+
+                // Fondo verde oscuro XBOX
+                iCtx.fillStyle = '#07140a';
+                iCtx.fillRect(0, 0, 512, 512);
+                iCtx.strokeStyle = '#19e653';
+                iCtx.lineWidth = 24;
+                iCtx.strokeRect(12, 12, 488, 488);
+
+                // Dibujar el Spartan en el centro del ícono
+                drawSpartanSprite(iCtx, 56, 76, 400, 360, true, false, 0);
+
+                const iconDataUrl = iconCanvas.toDataURL('image/png');
+                const appleLink = document.getElementById('appleTouchIconLink');
+                if (appleLink) appleLink.href = iconDataUrl;
+
+                // 2. Generar Web App Manifest dinámico en modo horizontal (landscape)
+                const manifestObj = {
+                    name: "Código de Ética XBOX",
+                    short_name: "Ética XBOX",
+                    description: "Videojuego arcade de plataformas sobre los 11 valores y pilares del Código de Ética XBOX.",
+                    start_url: "./",
+                    display: "standalone",
+                    orientation: "landscape",
+                    background_color: "#07140a",
+                    theme_color: "#07140a",
+                    icons: [
+                        {
+                            src: iconDataUrl,
+                            sizes: "512x512",
+                            type: "image/png",
+                            purpose: "any maskable"
+                        }
+                    ]
+                };
+
+                const manifestBlob = new Blob([JSON.stringify(manifestObj)], { type: 'application/manifest+json' });
+                const manifestUrl = URL.createObjectURL(manifestBlob);
+                const manifestLink = document.getElementById('pwaManifestLink');
+                if (manifestLink) manifestLink.href = manifestUrl;
+            } catch (err) {}
+        }
+
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredInstallPrompt = e;
+            const btnInstall = document.getElementById('btnInstallApp');
+            if (btnInstall) btnInstall.classList.remove('hidden');
+        });
+
+        document.getElementById('btnInstallApp').addEventListener('click', async () => {
+            if (!deferredInstallPrompt) return;
+            deferredInstallPrompt.prompt();
+            const { outcome } = await deferredInstallPrompt.userChoice;
+            if (outcome === 'accepted') {
+                document.getElementById('btnInstallApp').classList.add('hidden');
+            }
+            deferredInstallPrompt = null;
+        });
+
+        // ==========================================
+        // MOTOR DEL JUEGO DE PLATAFORMAS
+        // ==========================================
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const container = document.getElementById('canvasContainer');
+
+        let viewWidth = 800;
+        let viewHeight = 450;
+        let groundY = 370;
+
+        function resizeCanvas() {
+            const rect = container.getBoundingClientRect();
+            viewWidth = Math.max(320, rect.width);
+            viewHeight = Math.max(240, rect.height);
+            canvas.width = viewWidth;
+            canvas.height = viewHeight;
+            ctx.imageSmoothingEnabled = false;
+            groundY = Math.floor(viewHeight * 0.82);
+        }
+        window.addEventListener('resize', () => {
+            resizeCanvas();
+            if (gameState !== 'PLAYING') {
+                drawScene();
+            }
+        });
+
+        let gameState = 'START';
+        let currentLevelIdx = 0;
+        let score = 0;
+        let lives = 3;
+        let unlockedIds = new Set();
+        let cameraX = 0;
+        let levelLength = 2400;
+
+        const keys = {
+            left: false,
+            right: false,
+            jump: false
+        };
+
+        const player = {
+            x: 80,
+            y: 200,
+            w: 52,
+            h: 48,
+            vx: 0,
+            vy: 0,
+            speed: 5.2,
+            jumpForce: -13.2,
+            grounded: false,
+            facingRight: true,
+            attackTimer: 0,
+            attackCooldown: 0,
+            invulnTimer: 0,
+            animTimer: 0,
+            runFrame: 0
+        };
+
+        let platforms = [];
+        let gaps = [];
+        let enemies = [];
+        let coins = [];
+        let particles = [];
+        let goalPortal = { x: 2200, y: 250, w: 54, h: 90 };
+
+        function buildLevel(idx) {
+            resizeCanvas();
+            const concept = ETHICS_CONCEPTS[idx];
+            levelLength = 2100 + idx * 180;
+
+            player.x = 70;
+            player.y = groundY - player.h - 10;
+            player.vx = 0;
+            player.vy = 0;
+            player.grounded = false;
+            player.facingRight = true;
+            player.attackTimer = 0;
+            player.attackCooldown = 0;
+            player.invulnTimer = 0;
+            cameraX = 0;
+
+            platforms = [];
+            gaps = [];
+            enemies = [];
+            coins = [];
+            particles = [];
+
+            const numSections = 6 + Math.floor(idx / 2);
+            const sectionSpan = (levelLength - 450) / numSections;
+
+            for (let i = 0; i < numSections; i++) {
+                const sx = 320 + i * sectionSpan;
+
+                if (i % 2 === 1 && idx >= 1) {
+                    const gapW = Math.min(135, 85 + idx * 4);
+                    gaps.push({ x: sx + 40, w: gapW });
+                }
+
+                const p1W = 135;
+                const p1H = 18;
+                const p1Y = groundY - 95 - (i % 2) * 35;
+                platforms.push({ x: sx, y: p1Y, w: p1W, h: p1H });
+
+                coins.push({
+                    x: sx + p1W / 2,
+                    y: p1Y - 26,
+                    r: 12,
+                    collected: false
+                });
+
+                if (i % 2 === 0) {
+                    const p2X = sx + 155;
+                    const p2Y = groundY - 165;
+                    platforms.push({ x: p2X, y: p2Y, w: 120, h: 18 });
+                    coins.push({
+                        x: p2X + 60,
+                        y: p2Y - 26,
+                        r: 12,
+                        collected: false
+                    });
+                }
+
+                coins.push({
+                    x: sx - 55,
+                    y: groundY - 28,
+                    r: 12,
+                    collected: false
+                });
+
+                const enemySpeed = 1.3 + idx * 0.14;
+                const patrolMin = sx - 40;
+                const patrolMax = sx + 140;
+                const overGap = gaps.some(g => sx + 20 > g.x - 20 && sx + 20 < g.x + g.w + 20);
+                if (!overGap) {
+                    enemies.push({
+                        x: sx + 20,
+                        y: groundY - 38,
+                        w: 38,
+                        h: 38,
+                        vx: (i % 2 === 0 ? 1 : -1) * enemySpeed,
+                        minX: patrolMin,
+                        maxX: patrolMax,
+                        alive: true,
+                        label: concept.enemyName
+                    });
+                }
+            }
+
+            goalPortal = {
+                x: levelLength - 140,
+                y: groundY - 96,
+                w: 58,
+                h: 96
+            };
+
+            updateHUD();
+        }
+
+        function spawnParticles(x, y, color, count = 12) {
+            for (let i = 0; i < count; i++) {
+                particles.push({
+                    x,
+                    y,
+                    vx: (Math.random() - 0.5) * 7,
+                    vy: (Math.random() - 0.8) * 7,
+                    life: 24 + Math.random() * 14,
+                    color,
+                    size: 4 + Math.random() * 4
+                });
+            }
+        }
+
+        function triggerSwordAttack() {
+            if (gameState !== 'PLAYING') return;
+            if (player.attackCooldown > 0) return;
+            player.attackTimer = 14;
+            player.attackCooldown = 22;
+            AudioEngine.sword();
+        }
+
+        function triggerJump() {
+            if (gameState !== 'PLAYING') return;
+            if (player.grounded) {
+                player.vy = player.jumpForce;
+                player.grounded = false;
+                AudioEngine.jump();
+            }
+        }
+
+        function updateHUD() {
+            const concept = ETHICS_CONCEPTS[currentLevelIdx];
+            const collectedCount = coins.filter(c => c.collected).length;
+            document.getElementById('hudLevel').textContent = `NIVEL ${currentLevelIdx + 1}/${ETHICS_CONCEPTS.length}`;
+            document.getElementById('hudCoins').textContent = `${collectedCount}/${coins.length}`;
+            document.getElementById('hudScore').textContent = String(score).padStart(4, '0');
+            document.getElementById('codexBadge').textContent = unlockedIds.size;
+            document.getElementById('currentTargetLabel').textContent = concept.title.toUpperCase();
+
+            let heartsStr = '';
+            for (let i = 0; i < 3; i++) {
+                heartsStr += i < lives ? '❤️' : '🖤';
+            }
+            document.getElementById('hudHearts').textContent = heartsStr;
+
+            const pct = Math.max(0, Math.min(100, (player.x / goalPortal.x) * 100));
+            document.getElementById('levelProgressBar').style.width = `${pct}%`;
+        }
+
+        function updateGame() {
+            if (gameState !== 'PLAYING') return;
+
+            if (keys.left) {
+                player.vx = -player.speed;
+                player.facingRight = false;
+            } else if (keys.right) {
+                player.vx = player.speed;
+                player.facingRight = true;
+            } else {
+                player.vx *= 0.78;
+                if (Math.abs(player.vx) < 0.2) player.vx = 0;
+            }
+
+            if (keys.jump && player.grounded) {
+                triggerJump();
+            }
+
+            const gravity = 0.62;
+            player.vy += gravity;
+            if (player.vy > 15) player.vy = 15;
+
+            const prevY = player.y;
+            player.x += player.vx;
+            player.y += player.vy;
+
+            if (player.x < 10) player.x = 10;
+            if (player.x > levelLength - player.w) player.x = levelLength - player.w;
+
+            player.grounded = false;
+            const footCenterX = player.x + player.w * 0.5;
+            const inGap = gaps.some(g => footCenterX > g.x + 8 && footCenterX < g.x + g.w - 8);
+
+            if (!inGap && player.y + player.h >= groundY && prevY + player.h <= groundY + 18 && player.vy >= 0) {
+                player.y = groundY - player.h;
+                player.vy = 0;
+                player.grounded = true;
+            }
+
+            for (const plat of platforms) {
+                if (
+                    player.vy >= 0 &&
+                    prevY + player.h <= plat.y + 12 &&
+                    player.y + player.h >= plat.y &&
+                    player.x + player.w * 0.75 > plat.x &&
+                    player.x + player.w * 0.25 < plat.x + plat.w
+                ) {
+                    player.y = plat.y - player.h;
+                    player.vy = 0;
+                    player.grounded = true;
+                }
+            }
+
+            if (player.y > viewHeight + 40) {
+                handlePlayerHurt("¡Caíste al abismo! Salta sobre las plataformas para cruzar.");
+                return;
+            }
+
+            if (player.attackTimer > 0) player.attackTimer--;
+            if (player.attackCooldown > 0) player.attackCooldown--;
+            if (player.invulnTimer > 0) player.invulnTimer--;
+
+            if (Math.abs(player.vx) > 0.6 && player.grounded) {
+                player.animTimer++;
+                if (player.animTimer % 7 === 0) {
+                    player.runFrame = (player.runFrame + 1) % 3;
+                }
+            } else {
+                player.runFrame = 0;
+            }
+
+            const swordBox = player.attackTimer > 0 ? {
+                x: player.facingRight ? player.x + player.w * 0.6 : player.x - 44,
+                y: player.y - 4,
+                w: 46,
+                h: player.h + 8
+            } : null;
+
+            for (const en of enemies) {
+                if (!en.alive) continue;
+
+                en.x += en.vx;
+                if (en.x <= en.minX || en.x + en.w >= en.maxX) {
+                    en.vx *= -1;
+                }
+
+                if (swordBox && rectsOverlap(swordBox, en)) {
+                    en.alive = false;
+                    score += 250;
+                    AudioEngine.hitEnemy();
+                    spawnParticles(en.x + en.w / 2, en.y + en.h / 2, '#5CE1E6', 16);
+                    updateHUD();
+                    continue;
+                }
+
+                const pHitbox = { x: player.x + 10, y: player.y + 6, w: player.w - 20, h: player.h - 8 };
+                if (rectsOverlap(pHitbox, en)) {
+                    if (player.vy > 0 && prevY + player.h <= en.y + 16) {
+                        en.alive = false;
+                        player.vy = -10;
+                        score += 200;
+                        AudioEngine.hitEnemy();
+                        spawnParticles(en.x + en.w / 2, en.y + en.h / 2, '#9BF00B', 14);
+                        updateHUD();
+                    } else if (player.invulnTimer === 0) {
+                        handlePlayerHurt(`Te chocaste con "${en.label}". ¡Usa tu Espada de Energía (⚔️) para cortarlo!`);
+                        return;
+                    }
+                }
+            }
+
+            for (const c of coins) {
+                if (c.collected) continue;
+                const dx = (player.x + player.w / 2) - c.x;
+                const dy = (player.y + player.h / 2) - c.y;
+                if (Math.hypot(dx, dy) < c.r + 22) {
+                    c.collected = true;
+                    score += 100;
+                    AudioEngine.coin();
+                    spawnParticles(c.x, c.y, '#9BF00B', 10);
+                }
+            }
+
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const pt = particles[i];
+                pt.x += pt.vx;
+                pt.y += pt.vy;
+                pt.vy += 0.25;
+                pt.life--;
+                if (pt.life <= 0) particles.splice(i, 1);
+            }
+
+            const targetCamX = player.x - viewWidth * 0.32;
+            cameraX += (targetCamX - cameraX) * 0.14;
+            cameraX = Math.max(0, Math.min(levelLength - viewWidth, cameraX));
+
+            updateHUD();
+
+            if (rectsOverlap(player, goalPortal)) {
+                completeCurrentLevel();
+            }
+        }
+
+        function rectsOverlap(a, b) {
+            return (
+                a.x < b.x + b.w &&
+                a.x + a.w > b.x &&
+                a.y < b.y + b.h &&
+                a.y + a.h > b.y
+            );
+        }
+
+        function handlePlayerHurt(reasonMsg) {
+            lives--;
+            AudioEngine.hurt();
+            spawnParticles(player.x + player.w / 2, player.y + player.h / 2, '#ef4444', 18);
+            updateHUD();
+
+            if (lives <= 0) {
+                gameState = 'GAMEOVER';
+                AudioEngine.gameOver();
+                document.getElementById('gameOverReason').textContent = reasonMsg;
+                document.getElementById('gameOverOverlay').classList.remove('hidden');
+            } else {
+                player.x = Math.max(60, player.x - 140);
+                while (gaps.some(g => player.x + 25 > g.x - 15 && player.x + 25 < g.x + g.w + 15)) {
+                    player.x -= 40;
+                }
+                player.y = groundY - player.h - 20;
+                player.vx = 0;
+                player.vy = 0;
+                player.invulnTimer = 75;
+            }
+        }
+
+        function completeCurrentLevel() {
+            gameState = 'UNLOCKED';
+            AudioEngine.levelUp();
+            const concept = ETHICS_CONCEPTS[currentLevelIdx];
+            unlockedIds.add(concept.id);
+            score += 500;
+            updateHUD();
+
+            if (currentLevelIdx >= ETHICS_CONCEPTS.length - 1) {
+                document.getElementById('victoryOverlay').classList.remove('hidden');
+                return;
+            }
+
+            document.getElementById('unlockIcon').textContent = concept.icon;
+            document.getElementById('unlockCategory').textContent = concept.category;
+            document.getElementById('unlockTitle').textContent = `${concept.id}. ${concept.title.toUpperCase()}`;
+            document.getElementById('unlockDesc').textContent = concept.description;
+            document.getElementById('unlockOverlay').classList.remove('hidden');
+        }
+
+        function drawScene() {
+            const bgGrad = ctx.createLinearGradient(0, 0, 0, viewHeight);
+            bgGrad.addColorStop(0, '#071a0d');
+            bgGrad.addColorStop(0.65, '#0c2b16');
+            bgGrad.addColorStop(1, '#061209');
+            ctx.fillStyle = bgGrad;
+            ctx.fillRect(0, 0, viewWidth, viewHeight);
+
+            ctx.save();
+            for (let i = 0; i < 18; i++) {
+                const starX = ((i * 190 - cameraX * 0.25) % (viewWidth + 120) + (viewWidth + 120)) % (viewWidth + 120) - 60;
+                const starY = 45 + (i % 4) * 58;
+                ctx.fillStyle = 'rgba(155, 240, 11, 0.08)';
+                ctx.beginPath();
+                ctx.arc(starX, starY, 18, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.strokeStyle = 'rgba(155, 240, 11, 0.14)';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(starX - 7, starY - 7);
+                ctx.lineTo(starX + 7, starY + 7);
+                ctx.moveTo(starX + 7, starY - 7);
+                ctx.lineTo(starX - 7, starY + 7);
+                ctx.stroke();
+            }
+
+            ctx.fillStyle = '#082010';
+            ctx.beginPath();
+            ctx.moveTo(0, groundY);
+            for (let x = 0; x <= viewWidth + 100; x += 80) {
+                const worldX = x + cameraX * 0.4;
+                const hillH = Math.sin(worldX * 0.006) * 45 + 55;
+                ctx.lineTo(x, groundY - hillH);
+            }
+            ctx.lineTo(viewWidth, groundY);
+            ctx.closePath();
+            ctx.fill();
+            ctx.restore();
+
+            ctx.save();
+            ctx.translate(-Math.floor(cameraX), 0);
+
+            let cursorX = 0;
+            const sortedGaps = [...gaps].sort((a, b) => a.x - b.x);
+            for (const g of sortedGaps) {
+                if (g.x > cursorX) {
+                    drawGroundSegment(cursorX, g.x - cursorX);
+                }
+                cursorX = g.x + g.w;
+            }
+            if (cursorX < levelLength) {
+                drawGroundSegment(cursorX, levelLength - cursorX);
+            }
+
+            for (const plat of platforms) {
+                ctx.fillStyle = '#3b2416';
+                ctx.fillRect(plat.x, plat.y + 5, plat.w, plat.h - 5);
+                ctx.fillStyle = '#19e653';
+                ctx.fillRect(plat.x, plat.y, plat.w, 6);
+                ctx.strokeStyle = '#0d471d';
+                ctx.lineWidth = 2;
+                ctx.strokeRect(plat.x, plat.y, plat.w, plat.h);
+            }
+
+            const pulse = Math.sin(Date.now() * 0.007) * 3;
+            for (const c of coins) {
+                if (c.collected) continue;
+                ctx.save();
+                ctx.translate(c.x, c.y + pulse);
+                ctx.fillStyle = '#107C10';
+                ctx.beginPath();
+                ctx.arc(0, 0, c.r, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.strokeStyle = '#9BF00B';
+                ctx.lineWidth = 2.5;
+                ctx.stroke();
+
+                ctx.strokeStyle = '#ffffff';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(-4, -4);
+                ctx.lineTo(4, 4);
+                ctx.moveTo(4, -4);
+                ctx.lineTo(-4, 4);
+                ctx.stroke();
+                ctx.restore();
+            }
+
+            for (const en of enemies) {
+                if (!en.alive) continue;
+                drawEnemy(en);
+            }
+
+            drawGoalPortal(goalPortal);
+
+            if (player.invulnTimer === 0 || Math.floor(player.invulnTimer / 5) % 2 === 0) {
+                drawSpartanSprite(
+                    ctx,
+                    player.x,
+                    player.y,
+                    player.w,
+                    player.h,
+                    player.facingRight,
+                    player.attackTimer > 0,
+                    player.runFrame
+                );
+            }
+
+            for (const pt of particles) {
+                ctx.fillStyle = pt.color;
+                ctx.fillRect(pt.x, pt.y, pt.size, pt.size);
+            }
+
+            ctx.restore();
+        }
+
+        function drawGroundSegment(x, w) {
+            ctx.fillStyle = '#2d1b10';
+            ctx.fillRect(x, groundY + 8, w, viewHeight - groundY);
+
+            ctx.fillStyle = '#422818';
+            for (let gx = x + 12; gx < x + w - 16; gx += 36) {
+                ctx.fillRect(gx, groundY + 18, 10, 6);
+                ctx.fillRect(gx + 14, groundY + 34, 8, 6);
+            }
+
+            ctx.fillStyle = '#19e653';
+            ctx.fillRect(x, groundY, w, 8);
+            ctx.fillStyle = '#9BF00B';
+            ctx.fillRect(x, groundY, w, 3);
+        }
+
+        function drawEnemy(en) {
+            ctx.save();
+            const cx = en.x + en.w / 2;
+            const cy = en.y + en.h / 2;
+
+            ctx.fillStyle = '#ea580c';
+            ctx.beginPath();
+            const spikes = 8;
+            for (let i = 0; i < spikes * 2; i++) {
+                const rad = i % 2 === 0 ? en.w * 0.54 : en.w * 0.36;
+                const ang = (i * Math.PI) / spikes + Date.now() * 0.004;
+                const px = cx + Math.cos(ang) * rad;
+                const py = cy + Math.sin(ang) * rad;
+                if (i === 0) ctx.moveTo(px, py);
+                else ctx.lineTo(px, py);
+            }
+            ctx.closePath();
+            ctx.fill();
+            ctx.strokeStyle = '#7c2d12';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            ctx.fillStyle = '#141916';
+            ctx.fillRect(cx - 8, cy - 4, 5, 5);
+            ctx.fillRect(cx + 3, cy - 4, 5, 5);
+            ctx.fillRect(cx - 6, cy + 5, 12, 3);
+
+            ctx.font = 'bold 10px Inter, sans-serif';
+            ctx.fillStyle = '#fca5a5';
+            ctx.textAlign = 'center';
+            ctx.fillText(en.label, cx, en.y - 8);
+            ctx.restore();
+        }
+
+        function drawGoalPortal(portal) {
+            ctx.save();
+            ctx.fillStyle = '#107C10';
+            ctx.fillRect(portal.x, portal.y, portal.w, portal.h);
+            ctx.strokeStyle = '#9BF00B';
+            ctx.lineWidth = 3;
+            ctx.strokeRect(portal.x, portal.y, portal.w, portal.h);
+
+            const glowAlpha = 0.45 + Math.sin(Date.now() * 0.008) * 0.25;
+            ctx.fillStyle = `rgba(155, 240, 11, ${glowAlpha})`;
+            ctx.fillRect(portal.x + 6, portal.y + 6, portal.w - 12, portal.h - 12);
+
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 9px "Press Start 2P", monospace';
+            ctx.textAlign = 'center';
+            ctx.fillText('META', portal.x + portal.w / 2, portal.y - 10);
+
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 3;
+            const cx = portal.x + portal.w / 2;
+            const cy = portal.y + portal.h / 2;
+            ctx.beginPath();
+            ctx.moveTo(cx - 10, cy - 10);
+            ctx.lineTo(cx + 10, cy + 10);
+            ctx.moveTo(cx + 10, cy - 10);
+            ctx.lineTo(cx - 10, cy + 10);
+            ctx.stroke();
+            ctx.restore();
+        }
+
+        function gameLoop() {
+            updateGame();
+            drawScene();
+            requestAnimationFrame(gameLoop);
+        }
+
+        function startLevel(idx) {
+            currentLevelIdx = idx;
+            lives = 3;
+            document.getElementById('startOverlay').classList.add('hidden');
+            document.getElementById('unlockOverlay').classList.add('hidden');
+            document.getElementById('gameOverOverlay').classList.add('hidden');
+            document.getElementById('victoryOverlay').classList.add('hidden');
+            buildLevel(idx);
+            gameState = 'PLAYING';
+        }
+
+        function renderCodexModal() {
+            const list = document.getElementById('codexList');
+            list.innerHTML = '';
+
+            ETHICS_CONCEPTS.forEach(item => {
+                const isUnlocked = unlockedIds.has(item.id);
+                const card = document.createElement('div');
+                card.className = isUnlocked
+                    ? 'bg-[#152418] border border-[#9BF00B] rounded-xl p-3.5 transition'
+                    : 'bg-black/50 border border-white/10 rounded-xl p-3.5 opacity-60';
+
+                card.innerHTML = `
+                    <div class="flex items-center justify-between mb-1.5">
+                        <span class="text-[10px] font-bold tracking-wider uppercase ${isUnlocked ? 'text-emerald-400' : 'text-gray-500'}">
+                            ${item.category}
+                        </span>
+                        <span class="text-xs font-pixel ${isUnlocked ? 'text-[#9BF00B]' : 'text-gray-500'}">
+                            ${isUnlocked ? '✓ NIVEL ' + item.id : '🔒 NIVEL ' + item.id}
+                        </span>
+                    </div>
+                    <h3 class="font-pixel text-xs text-white mb-1.5 flex items-center gap-2">
+                        <span>${isUnlocked ? item.icon : '❓'}</span>
+                        <span>${item.id}. ${item.title}</span>
+                    </h3>
+                    <p class="text-xs text-gray-300 leading-relaxed">
+                        ${isUnlocked ? item.description : 'Supera el Nivel ' + item.id + ' para desbloquear este concepto del Código de Ética XBOX.'}
+                    </p>
+                `;
+                list.appendChild(card);
+            });
+        }
+
+        window.addEventListener('keydown', (e) => {
+            if (e.code === 'ArrowLeft' || e.code === 'KeyA') keys.left = true;
+            if (e.code === 'ArrowRight' || e.code === 'KeyD') keys.right = true;
+            if (e.code === 'ArrowUp' || e.code === 'KeyW' || e.code === 'Space') {
+                e.preventDefault();
+                triggerJump();
+            }
+            if (e.code === 'KeyX' || e.code === 'KeyJ' || e.code === 'Enter') {
+                if (gameState === 'PLAYING') {
+                    e.preventDefault();
+                    triggerSwordAttack();
+                }
+            }
+        });
+
+        window.addEventListener('keyup', (e) => {
+            if (e.code === 'ArrowLeft' || e.code === 'KeyA') keys.left = false;
+            if (e.code === 'ArrowRight' || e.code === 'KeyD') keys.right = false;
+        });
+
+        function bindHoldButton(btnId, onDown, onUp) {
+            const btn = document.getElementById(btnId);
+            if (!btn) return;
+            const press = (e) => {
+                e.preventDefault();
+                btn.classList.add('pressed');
+                onDown();
+            };
+            const release = (e) => {
+                e.preventDefault();
+                btn.classList.remove('pressed');
+                if (onUp) onUp();
+            };
+            btn.addEventListener('touchstart', press, { passive: false });
+            btn.addEventListener('touchend', release, { passive: false });
+            btn.addEventListener('touchcancel', release, { passive: false });
+            btn.addEventListener('mousedown', press);
+            btn.addEventListener('mouseup', release);
+            btn.addEventListener('mouseleave', release);
+        }
+
+        bindHoldButton('btnLeft', () => { keys.left = true; }, () => { keys.left = false; });
+        bindHoldButton('btnRight', () => { keys.right = true; }, () => { keys.right = false; });
+        bindHoldButton('btnJump', () => { triggerJump(); });
+        bindHoldButton('btnSword', () => { triggerSwordAttack(); });
+
+        document.getElementById('btnStartGame').addEventListener('click', () => {
+            AudioEngine.init();
+            startLevel(0);
+        });
+
+        document.getElementById('btnNextLevel').addEventListener('click', () => {
+            if (currentLevelIdx + 1 < ETHICS_CONCEPTS.length) {
+                startLevel(currentLevelIdx + 1);
+            }
+        });
+
+        document.getElementById('btnRetryLevel').addEventListener('click', () => {
+            startLevel(currentLevelIdx);
+        });
+
+        document.getElementById('btnRestartAll').addEventListener('click', () => {
+            score = 0;
+            unlockedIds.clear();
+            startLevel(0);
+        });
+
+        document.getElementById('btnQuickRestart').addEventListener('click', () => {
+            if (gameState === 'PLAYING') {
+                startLevel(currentLevelIdx);
+            }
+        });
+
+        document.getElementById('btnMute').addEventListener('click', () => {
+            AudioEngine.muted = !AudioEngine.muted;
+            document.getElementById('btnMute').textContent = AudioEngine.muted ? '🔇' : '🔊';
+        });
+
+        document.getElementById('btnOpenCodex').addEventListener('click', () => {
+            renderCodexModal();
+            document.getElementById('codexModal').classList.remove('hidden');
+        });
+
+        document.getElementById('btnViewAllCodex').addEventListener('click', () => {
+            renderCodexModal();
+            document.getElementById('codexModal').classList.remove('hidden');
+        });
+
+        document.getElementById('btnCloseCodex').addEventListener('click', () => {
+            document.getElementById('codexModal').classList.add('hidden');
+        });
+
+        window.onload = function () {
+            initPWAFeatures();
+            resizeCanvas();
+            renderStartPreview();
+            buildLevel(0);
+            gameLoop();
+        };
+    </script>
+</body>
+</html>
